@@ -20,4 +20,4 @@ Purpose: quick references for operating this mini logging pipeline.
 - `docker compose config > artifacts/compose.resolved.yml` → resolved compose lint output
 
 ## Automation
-- `./scripts/pipeline.sh` → runs the 6-stage demo pipeline end-to-end
+- `./scripts/pipeline.sh` → runs the 5-stage readiness pipeline end-to-end

@@ -21,7 +21,7 @@ Mini logging pipeline that ships JSON logs from a sample app to OpenSearch with 
 │   ├── Dockerfile               # Sample app container image
 │   └── app.py                   # Emits structured JSON logs continuously
 ├── scripts/
-│   └── pipeline.sh              # 6-stage pipeline demo script
+│   └── pipeline.sh              # 5-stage readiness pipeline script
 └── artifacts/                   # Generated outputs (health/index/config snapshots)
 ```
 
@@ -34,7 +34,7 @@ Endpoints:
 - OpenSearch: http://localhost:9200
 - Dashboards: http://localhost:5601
 
-## 6-stage pipeline walkthrough
+## 5-stage readiness pipeline walkthrough
 ### 1) Compose up
 ```bash
 docker compose up -d --build
@@ -66,13 +66,17 @@ PY
 curl -s "http://localhost:9200/_cat/indices/app-logs*?v"
 ```
 
-### 5) Export minimal config lint
+### 5) Export minimal config lint + ready check
 ```bash
 docker compose config > artifacts/compose.resolved.yml
 ```
 This validates and renders the resolved Compose configuration.
 
-### 6) Cleanup
+When complete, services are ready to use at:
+- OpenSearch: `http://localhost:9200`
+- Dashboards: `http://localhost:5601`
+
+Cleanup when finished:
 ```bash
 docker compose down -v
 ```
