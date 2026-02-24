@@ -27,6 +27,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Guard secret presence for CI
+        run: |
+          if [[ -z "${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-}" ]]; then
+            echo "ERROR: OPENSEARCH_INITIAL_ADMIN_PASSWORD secret is missing in GitHub Actions." >&2
+            exit 1
+          fi
+
       - name: Stage 3/6 - Static sanity checks
         run: |
           bash -n scripts/pipeline.sh

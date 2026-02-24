@@ -43,6 +43,8 @@ You do **not** need `.env.example` to run this project.
 ### Local development
 Set the variable directly in your shell (or create your own `.env` file):
 
+> Note: `docker-compose.yml` contains a **local-only fallback** (`LOCAL_DEV_ONLY_CHANGE_ME`). Do not rely on it; always set your own value.
+
 ```bash
 export OPENSEARCH_INITIAL_ADMIN_PASSWORD='your-strong-password'
 # then run docker compose up -d --build
@@ -54,7 +56,7 @@ Docker Compose also supports a local `.env` file automatically.
 In CI, set repository/environment secret:
 - `OPENSEARCH_INITIAL_ADMIN_PASSWORD`
 
-The workflow already forwards that secret as an environment variable, so CI does not need a tracked `.env` file.
+The workflow already forwards that secret as an environment variable, and CI includes a guard step that fails fast if the secret is missing.
 
 ## 5-stage readiness pipeline
 Run:
