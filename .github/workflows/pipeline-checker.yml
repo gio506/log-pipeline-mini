@@ -1,0 +1,43 @@
+name: pipeline-checker
+
+on:
+  push:
+    branches: ["main", "work"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Stage 1/6 - Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage 2/6 - Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stage 3/6 - Static sanity checks
+        run: |
+          bash -n scripts/pipeline.sh
+          python -m py_compile sample-app/app.py
+
+      - name: Stage 4/6 - Compose config lint
+        run: |
+          docker compose version
+          docker compose config > artifacts/compose.resolved.yml
+
+      - name: Stage 5/6 - Run the 5-stage readiness pipeline
+        run: |
+          chmod +x scripts/pipeline.sh
+          ./scripts/pipeline.sh
+
+      - name: Stage 6/6 - Validate outputs + cleanup
+        if: always()
+        run: |
+          test -s artifacts/cluster-health.json
+          test -s artifacts/indexes.txt
+          test -s artifacts/compose.resolved.yml
+          docker compose down -v --remove-orphans || true
