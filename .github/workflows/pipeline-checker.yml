@@ -30,9 +30,14 @@ jobs:
           bash -n scripts/pipeline.sh
           python -m py_compile sample-app/app.py
 
-      - name: Stage 4/6 - Compose config lint
+      - name: Stage 4/6 - Compose prerequisites + config lint
         run: |
           mkdir -p artifacts
+          current=$(sysctl -n vm.max_map_count)
+          echo "vm.max_map_count=${current}"
+          if [ "${current}" -lt 262144 ]; then
+            sudo sysctl -w vm.max_map_count=262144
+          fi
           docker compose version
           docker compose config > artifacts/compose.resolved.yml
 

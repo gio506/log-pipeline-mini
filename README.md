@@ -43,11 +43,11 @@ Run:
 ```
 
 What it does:
-1. **Compose up**: starts all services.
-2. **Health checks**: waits for OpenSearch and Dashboards APIs.
-3. **Send test logs**: injects a manual JSON event into app log file.
-4. **Verify ingestion**: confirms `app-logs*` exists and writes doc count artifact.
-5. **Compose lint export**: writes resolved compose config and prints ready/cleanup hints.
+1. **Preflight**: validates `vm.max_map_count` host kernel requirement for OpenSearch.
+2. **Compose up**: starts all services.
+3. **Health checks**: waits for OpenSearch and Dashboards APIs.
+4. **Send test logs**: injects a manual JSON event into app log file.
+5. **Verify ingestion + lint export**: confirms `app-logs*`, writes doc count artifact, exports compose config, and prints ready/cleanup hints.
 
 Artifacts produced:
 - `artifacts/cluster-health.json`
@@ -116,3 +116,16 @@ docker compose down -v --remove-orphans
 - OpenSearch docs: <https://docs.opensearch.org/latest/>
 - OpenSearch Dashboards docs: <https://docs.opensearch.org/latest/dashboards/>
 - GitHub Actions docs: <https://docs.github.com/actions>
+
+
+## Troubleshooting
+If OpenSearch exits immediately with code `1`, the most common cause is low `vm.max_map_count`.
+
+Fix:
+```bash
+sudo sysctl -w vm.max_map_count=262144
+```
+Then rerun:
+```bash
+./scripts/pipeline.sh
+```
