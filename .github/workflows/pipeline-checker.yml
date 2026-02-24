@@ -5,10 +5,16 @@ on:
     branches: ["main", "work"]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Stage 1/6 - Checkout
@@ -26,18 +32,25 @@ jobs:
 
       - name: Stage 4/6 - Compose config lint
         run: |
+          mkdir -p artifacts
           docker compose version
           docker compose config > artifacts/compose.resolved.yml
 
       - name: Stage 5/6 - Run the 5-stage readiness pipeline
+        id: run_pipeline
         run: |
           chmod +x scripts/pipeline.sh
           ./scripts/pipeline.sh
 
-      - name: Stage 6/6 - Validate outputs + cleanup
+      - name: Stage 6/6 - Validate artifacts + cleanup
         if: always()
         run: |
-          test -s artifacts/cluster-health.json
-          test -s artifacts/indexes.txt
-          test -s artifacts/compose.resolved.yml
+          if [[ "${{ steps.run_pipeline.outcome }}" == "success" ]]; then
+            test -s artifacts/cluster-health.json
+            test -s artifacts/indexes.txt
+            test -s artifacts/doc-count.json
+            test -s artifacts/compose.resolved.yml
+          else
+            echo "Skipping artifact assertions because Stage 5 did not succeed."
+          fi
           docker compose down -v --remove-orphans || true

@@ -1,28 +1,30 @@
 # log-pipeline-mini
 
-Mini logging pipeline that ships JSON logs from a sample app to OpenSearch with Fluent Bit, then explores them in OpenSearch Dashboards.
+A mini local logging pipeline for structured JSON logs using **Fluent Bit -> OpenSearch -> OpenSearch Dashboards** with Docker Compose.
 
-## Stack
-- Docker Compose orchestration
-- Sample Python app emitting JSON logs
-- Fluent Bit tail input + OpenSearch output
-- OpenSearch for storage/index/search
-- OpenSearch Dashboards for visualization
+This repo keeps the original concept (simple, local, demo-friendly) but hardens execution with better health checks, CI stages, and operational runbooks.
+
+## Architecture
+1. `sample-app` emits JSON logs to stdout and `/var/log/app/app.log`.
+2. `fluent-bit` tails `/var/log/app/app.log` and forwards documents to OpenSearch.
+3. `opensearch` stores/indexes logs under `app-logs*`.
+4. `dashboards` lets you search and visualize events.
 
 ## Project tree
 ```text
 .
-├── docker-compose.yml           # Runs OpenSearch, Dashboards, Fluent Bit, and sample app
-├── README.md                    # Setup, runbook, queries, dashboard walkthrough
-├── CHEATSHEET.md                # Fast commands for daily use
+├── .github/workflows/pipeline-checker.yml  # 6-stage CI checker (lint + readiness run + cleanup)
+├── docker-compose.yml                       # Services: OpenSearch, Dashboards, sample-app, Fluent Bit
 ├── fluent-bit/
-│   └── fluent-bit.conf          # Input/filter/output pipeline config
+│   └── fluent-bit.conf                      # Tail input + OpenSearch output
 ├── sample-app/
-│   ├── Dockerfile               # Sample app container image
-│   └── app.py                   # Emits structured JSON logs continuously
+│   ├── Dockerfile                           # Python container image
+│   └── app.py                               # Continuous JSON log emitter
 ├── scripts/
-│   └── pipeline.sh              # 5-stage readiness pipeline script
-└── artifacts/                   # Generated outputs (health/index/config snapshots)
+│   └── pipeline.sh                          # 5-stage local readiness pipeline
+├── CHEATSHEET.md                            # Fast operational commands
+├── .gitignore                               # Ignore caches and generated artifacts
+└── artifacts/                               # Generated runtime outputs from checks (created on run)
 ```
 
 ## Quick start
@@ -31,65 +33,45 @@ docker compose up -d --build
 ```
 
 Endpoints:
-- OpenSearch: http://localhost:9200
-- Dashboards: http://localhost:5601
+- OpenSearch: <http://localhost:9200>
+- Dashboards: <http://localhost:5601>
 
-## 5-stage readiness pipeline walkthrough
-### 1) Compose up
+## 5-stage readiness pipeline
+Run:
 ```bash
-docker compose up -d --build
+./scripts/pipeline.sh
 ```
 
-### 2) Health checks for services
+What it does:
+1. **Compose up**: starts all services.
+2. **Health checks**: waits for OpenSearch and Dashboards APIs.
+3. **Send test logs**: injects a manual JSON event into app log file.
+4. **Verify ingestion**: confirms `app-logs*` exists and writes doc count artifact.
+5. **Compose lint export**: writes resolved compose config and prints ready/cleanup hints.
+
+Artifacts produced:
+- `artifacts/cluster-health.json`
+- `artifacts/indexes.txt`
+- `artifacts/doc-count.json`
+- `artifacts/compose.resolved.yml`
+
+## Manual verification commands
 ```bash
-docker compose ps
+# cluster health
 curl -s http://localhost:9200/_cluster/health | jq
-curl -s http://localhost:5601/api/status | jq '.status.overall'
+
+# indices
+curl -s 'http://localhost:9200/_cat/indices/app-logs*?v'
+
+# count docs
+curl -s 'http://localhost:9200/app-logs*/_count' | jq
 ```
 
-### 3) Send test logs
-The sample app emits logs every 2 seconds. You can also inject one manually:
-```bash
-docker compose exec -T sample-app python - <<'PY'
-import datetime, json
-print(json.dumps({
-  "@timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-  "app": "orders-api",
-  "level": "INFO",
-  "message": "manual test event"
-}))
-PY
-```
-
-### 4) Verify index exists
-```bash
-curl -s "http://localhost:9200/_cat/indices/app-logs*?v"
-```
-
-### 5) Export minimal config lint + ready check
-```bash
-docker compose config > artifacts/compose.resolved.yml
-```
-This validates and renders the resolved Compose configuration.
-
-When complete, services are ready to use at:
-- OpenSearch: `http://localhost:9200`
-- Dashboards: `http://localhost:5601`
-
-Cleanup when finished:
-```bash
-docker compose down -v
-```
-
-## Search queries (Dev Tools)
-Open Dashboards → **Dev Tools** and run:
-
-Count docs:
+## OpenSearch query examples (Dev Tools)
 ```json
 GET app-logs*/_count
 ```
 
-Latest errors:
 ```json
 GET app-logs*/_search
 {
@@ -101,7 +83,6 @@ GET app-logs*/_search
 }
 ```
 
-Slow requests (`latency_ms >= 700`):
 ```json
 GET app-logs*/_search
 {
@@ -113,16 +94,25 @@ GET app-logs*/_search
 }
 ```
 
-## Dashboard suggestions (minimal)
-1. Create index pattern: `app-logs*` with time field `@timestamp`.
-2. Create visualizations:
-   - Logs over time (date histogram)
-   - Error rate by `level.keyword`
-   - Top routes by `route.keyword`
-   - P95 latency via percentile on `latency_ms`
-3. Save dashboard: `Local Log Pipeline Overview`.
+## CI pipeline checker (GitHub Actions)
+Workflow: `.github/workflows/pipeline-checker.yml`
 
-## One-command runbook
+Stages:
+1. Checkout
+2. Setup Python
+3. Static checks (`bash -n`, `py_compile`)
+4. Compose lint (`docker compose config`)
+5. Run local 5-stage readiness script
+6. Validate artifacts + cleanup
+
+## Cleanup
 ```bash
-./scripts/pipeline.sh
+docker compose down -v --remove-orphans
 ```
+
+## References (official docs)
+- Docker Compose: <https://docs.docker.com/compose/>
+- Fluent Bit docs: <https://docs.fluentbit.io/manual>
+- OpenSearch docs: <https://docs.opensearch.org/latest/>
+- OpenSearch Dashboards docs: <https://docs.opensearch.org/latest/dashboards/>
+- GitHub Actions docs: <https://docs.github.com/actions>
