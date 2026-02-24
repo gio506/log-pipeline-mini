@@ -23,7 +23,6 @@ This repo keeps the original concept (simple, local, demo-friendly) but hardens 
 ├── scripts/
 │   └── pipeline.sh                          # 5-stage local readiness pipeline
 ├── CHEATSHEET.md                            # Fast operational commands
-├── .env.example                             # Example environment overrides (optional local tuning)
 ├── .gitignore                               # Ignore caches and generated artifacts
 └── artifacts/                               # Generated runtime outputs from checks (created on run)
 ```
@@ -39,22 +38,23 @@ Endpoints:
 
 ## Password setup (local vs GitHub Actions)
 
-### Local development
-This repo reads `OPENSEARCH_INITIAL_ADMIN_PASSWORD` from environment with a default fallback in `docker-compose.yml`.
+You do **not** need `.env.example` to run this project.
 
-Recommended local setup:
+### Local development
+Set the variable directly in your shell (or create your own `.env` file):
+
 ```bash
-cp .env.example .env
-# edit .env and set a strong value
+export OPENSEARCH_INITIAL_ADMIN_PASSWORD='your-strong-password'
+# then run docker compose up -d --build
 ```
 
-Compose will automatically load `.env` for local runs (`docker compose up ...`).
+Docker Compose also supports a local `.env` file automatically.
 
 ### GitHub Actions (with secret)
 In CI, set repository/environment secret:
 - `OPENSEARCH_INITIAL_ADMIN_PASSWORD`
 
-The workflow forwards that secret as an environment variable, so Compose uses the secret value instead of local defaults.
+The workflow already forwards that secret as an environment variable, so CI does not need a tracked `.env` file.
 
 ## 5-stage readiness pipeline
 Run:
@@ -147,7 +147,7 @@ sudo sysctl -w vm.max_map_count=262144
 ```
 Compose already includes `DISABLE_INSTALL_DEMO_CONFIG=true`, `DISABLE_SECURITY_PLUGIN=true`, plus recommended `ulimits` (`memlock` and `nofile`).
 
-For local runs, set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` in `.env` (from `.env.example`). In GitHub Actions, set it as a repository/environment secret with the same name.
+For local runs, set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` in your shell or local `.env`. In GitHub Actions, set it as a repository/environment secret with the same name.
 
 Then rerun:
 ```bash

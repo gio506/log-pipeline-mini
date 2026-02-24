@@ -30,4 +30,5 @@ Quick commands for operating the mini logging pipeline.
 
 
 ## Optional env override
-- `cp .env.example .env` → create local overrides (for example admin password when enabling security)
+- `export OPENSEARCH_INITIAL_ADMIN_PASSWORD='your-strong-password'` → set local password quickly
+- or create a local `.env` file with `OPENSEARCH_INITIAL_ADMIN_PASSWORD=...`
