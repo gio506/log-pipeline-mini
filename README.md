@@ -23,6 +23,7 @@ This repo keeps the original concept (simple, local, demo-friendly) but hardens 
 ├── scripts/
 │   └── pipeline.sh                          # 5-stage local readiness pipeline
 ├── CHEATSHEET.md                            # Fast operational commands
+├── .env.example                             # Example environment overrides (optional local tuning)
 ├── .gitignore                               # Ignore caches and generated artifacts
 └── artifacts/                               # Generated runtime outputs from checks (created on run)
 ```
@@ -103,7 +104,7 @@ Stages:
 3. Static checks (`bash -n`, `py_compile`)
 4. Compose lint (`docker compose config`)
 5. Run local 5-stage readiness script
-6. Validate artifacts + cleanup
+6. Validate artifacts + cleanup (and upload artifacts)
 
 ## Cleanup
 ```bash
@@ -119,13 +120,15 @@ docker compose down -v --remove-orphans
 
 
 ## Troubleshooting
-If OpenSearch exits immediately with code `1`, common causes are low `vm.max_map_count` **or** missing security bootstrap env in newer OpenSearch images.
+If OpenSearch exits immediately with code `1`, common causes are low `vm.max_map_count` or host/resource prerequisites. This repo also sets recommended OpenSearch container bootstrap env/ulimits for stable startup.
 
 Fix:
 ```bash
 sudo sysctl -w vm.max_map_count=262144
 ```
-Also ensure compose env includes `DISABLE_INSTALL_DEMO_CONFIG=true`, `DISABLE_SECURITY_PLUGIN=true`, and `OPENSEARCH_INITIAL_ADMIN_PASSWORD` (already set in this repo).
+Compose already includes `DISABLE_INSTALL_DEMO_CONFIG=true`, `DISABLE_SECURITY_PLUGIN=true`, plus recommended `ulimits` (`memlock` and `nofile`).
+
+If you enable security later, copy `.env.example` to `.env` and set `OPENSEARCH_INITIAL_ADMIN_PASSWORD`.
 
 Then rerun:
 ```bash
