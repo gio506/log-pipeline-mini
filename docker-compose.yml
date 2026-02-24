@@ -5,7 +5,9 @@ services:
       - discovery.type=single-node
       - DISABLE_INSTALL_DEMO_CONFIG=true
       - DISABLE_SECURITY_PLUGIN=true
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-ChangeMe_Str0ngP@ssw0rd}
+      # Local dev fallback only: MUST be changed for local runs and MUST NOT be used in real environments.
+      # In GitHub Actions, set OPENSEARCH_INITIAL_ADMIN_PASSWORD via repository/environment secret.
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-LOCAL_DEV_ONLY_CHANGE_ME}
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
     ulimits:
       memlock:
