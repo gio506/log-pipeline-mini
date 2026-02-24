@@ -53,10 +53,13 @@ export OPENSEARCH_INITIAL_ADMIN_PASSWORD='your-strong-password'
 Docker Compose also supports a local `.env` file automatically.
 
 ### GitHub Actions (with secret)
-In CI, set repository/environment secret:
+In CI, set secret:
 - `OPENSEARCH_INITIAL_ADMIN_PASSWORD`
 
-The workflow already forwards that secret as an environment variable, and CI includes a guard step that fails fast if the secret is missing.
+If you store it under **Settings → Environments → OPENSEARCH**, keep workflow `environment: OPENSEARCH` (already configured).
+If you store it under repository secrets, it also works.
+
+The workflow forwards that secret as an environment variable, and CI guard step fails fast if the secret is missing.
 
 ## 5-stage readiness pipeline
 Run:
