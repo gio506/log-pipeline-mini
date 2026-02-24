@@ -37,6 +37,25 @@ Endpoints:
 - OpenSearch: <http://localhost:9200>
 - Dashboards: <http://localhost:5601>
 
+## Password setup (local vs GitHub Actions)
+
+### Local development
+This repo reads `OPENSEARCH_INITIAL_ADMIN_PASSWORD` from environment with a default fallback in `docker-compose.yml`.
+
+Recommended local setup:
+```bash
+cp .env.example .env
+# edit .env and set a strong value
+```
+
+Compose will automatically load `.env` for local runs (`docker compose up ...`).
+
+### GitHub Actions (with secret)
+In CI, set repository/environment secret:
+- `OPENSEARCH_INITIAL_ADMIN_PASSWORD`
+
+The workflow forwards that secret as an environment variable, so Compose uses the secret value instead of local defaults.
+
 ## 5-stage readiness pipeline
 Run:
 ```bash
@@ -128,7 +147,7 @@ sudo sysctl -w vm.max_map_count=262144
 ```
 Compose already includes `DISABLE_INSTALL_DEMO_CONFIG=true`, `DISABLE_SECURITY_PLUGIN=true`, plus recommended `ulimits` (`memlock` and `nofile`).
 
-If you enable security later, copy `.env.example` to `.env` and set `OPENSEARCH_INITIAL_ADMIN_PASSWORD`.
+For local runs, set `OPENSEARCH_INITIAL_ADMIN_PASSWORD` in `.env` (from `.env.example`). In GitHub Actions, set it as a repository/environment secret with the same name.
 
 Then rerun:
 ```bash
