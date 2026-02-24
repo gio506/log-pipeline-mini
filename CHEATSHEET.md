@@ -27,3 +27,7 @@ Quick commands for operating the mini logging pipeline.
 - `artifacts/indexes.txt` → index listing for `app-logs*`
 - `artifacts/doc-count.json` → count API response for ingested docs
 - `artifacts/compose.resolved.yml` → resolved compose config
+
+
+## Optional env override
+- `cp .env.example .env` → create local overrides (for example admin password when enabling security)
