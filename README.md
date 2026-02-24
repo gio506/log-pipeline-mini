@@ -7,7 +7,7 @@ This repo keeps the original concept (simple, local, demo-friendly) but hardens 
 ## Architecture
 1. `sample-app` emits JSON logs to stdout and `/var/log/app/app.log`.
 2. `fluent-bit` tails `/var/log/app/app.log` and forwards documents to OpenSearch.
-3. `opensearch` stores/indexes logs under `app-logs*`.
+3. `opensearch` stores/indexes logs under `app-logs*` and uses explicit startup envs for stable local/CI boot.
 4. `dashboards` lets you search and visualize events.
 
 ## Project tree
@@ -119,12 +119,14 @@ docker compose down -v --remove-orphans
 
 
 ## Troubleshooting
-If OpenSearch exits immediately with code `1`, the most common cause is low `vm.max_map_count`.
+If OpenSearch exits immediately with code `1`, common causes are low `vm.max_map_count` **or** missing security bootstrap env in newer OpenSearch images.
 
 Fix:
 ```bash
 sudo sysctl -w vm.max_map_count=262144
 ```
+Also ensure compose env includes `DISABLE_INSTALL_DEMO_CONFIG=true`, `DISABLE_SECURITY_PLUGIN=true`, and `OPENSEARCH_INITIAL_ADMIN_PASSWORD` (already set in this repo).
+
 Then rerun:
 ```bash
 ./scripts/pipeline.sh
