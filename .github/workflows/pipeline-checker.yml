@@ -57,5 +57,7 @@ jobs:
             test -s artifacts/compose.resolved.yml
           else
             echo "Skipping artifact assertions because Stage 5 did not succeed."
+            docker compose ps || true
+            docker compose logs opensearch --tail=200 | tee artifacts/opensearch.failure.log || true
           fi
           docker compose down -v --remove-orphans || true
