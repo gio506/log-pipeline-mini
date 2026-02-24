@@ -1,25 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mkdir -p artifacts
+ARTIFACT_DIR="artifacts"
+mkdir -p "${ARTIFACT_DIR}"
+
+wait_for_http() {
+  local url="$1"
+  local attempts="${2:-45}"
+  local sleep_s="${3:-2}"
+  local i
+
+  for ((i=1; i<=attempts; i++)); do
+    if curl -fsS "$url" >/dev/null; then
+      return 0
+    fi
+    sleep "$sleep_s"
+  done
+
+  echo "ERROR: timed out waiting for $url" >&2
+  return 1
+}
 
 echo "[1/5] compose up"
 docker compose up -d --build
 
 echo "[2/5] health checks"
 docker compose ps
-for i in {1..30}; do
-  if curl -fsS http://localhost:9200/_cluster/health >/dev/null; then
-    break
-  fi
-  sleep 2
-done
-curl -fsS http://localhost:9200/_cluster/health | tee artifacts/cluster-health.json >/dev/null
+wait_for_http "http://localhost:9200/_cluster/health"
+wait_for_http "http://localhost:5601/api/status"
+curl -fsS "http://localhost:9200/_cluster/health" | tee "${ARTIFACT_DIR}/cluster-health.json" >/dev/null
 
 echo "[3/5] send test logs"
 docker compose exec -T sample-app python - <<'PY'
-import datetime, json
-print(json.dumps({
+import datetime
+import json
+
+record = {
   "@timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
   "app": "orders-api",
   "service": "checkout",
@@ -29,15 +45,25 @@ print(json.dumps({
   "status": 200,
   "latency_ms": 42,
   "trace_id": "tr-manual-001",
-  "message": "manual log injection from pipeline stage"
-}))
+  "message": "manual log injection from pipeline stage",
+}
+line = json.dumps(record)
+
+print(line, flush=True)
+with open("/var/log/app/app.log", "a", encoding="utf-8") as f:
+    f.write(line + "\n")
 PY
 
-echo "[4/5] verify index exists"
-sleep 5
-curl -fsS "http://localhost:9200/_cat/indices/app-logs*?v" | tee artifacts/indexes.txt >/dev/null
+echo "[4/5] verify index + document visibility"
+for _ in {1..30}; do
+  if curl -fsS "http://localhost:9200/_cat/indices/app-logs*?v" | tee "${ARTIFACT_DIR}/indexes.txt" | grep -q "app-logs"; then
+    break
+  fi
+  sleep 2
+done
+curl -fsS "http://localhost:9200/app-logs*/_count" | tee "${ARTIFACT_DIR}/doc-count.json" >/dev/null
 
-echo "[5/5] export minimal config lint"
-docker compose config > artifacts/compose.resolved.yml
+echo "[5/5] export compose lint + ready summary"
+docker compose config > "${ARTIFACT_DIR}/compose.resolved.yml"
 echo "service ready: OpenSearch http://localhost:9200 | Dashboards http://localhost:5601"
 echo "cleanup: docker compose down -v"
