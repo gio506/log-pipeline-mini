@@ -5,6 +5,14 @@ ARTIFACT_DIR="artifacts"
 mkdir -p "${ARTIFACT_DIR}"
 
 require_vm_max_map_count() {
+  case "$(uname -s)" in
+    Linux) ;;
+    *)
+      echo "INFO: skipping vm.max_map_count preflight on non-Linux host $(uname -s)." >&2
+      return 0
+      ;;
+  esac
+
   local current
   current=$(sysctl -n vm.max_map_count 2>/dev/null || echo 0)
   if [[ "${current}" -lt 262144 ]]; then
