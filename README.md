@@ -21,8 +21,10 @@ This repo keeps the original concept (simple, local, demo-friendly) but hardens 
 │   ├── Dockerfile                           # Python container image
 │   └── app.py                               # Continuous JSON log emitter
 ├── scripts/
-│   └── pipeline.sh                          # 5-stage local readiness pipeline
+│   ├── pipeline.sh                          # 5-stage local readiness pipeline
+│   └── smoke.sh                             # wrapper entrypoint used by CI and local checks
 ├── CHEATSHEET.md                            # Fast operational commands
+├── FILES_EXPLAINED.md                       # File-by-file purpose map
 ├── .gitignore                               # Ignore caches and generated artifacts
 └── artifacts/                               # Generated runtime outputs from checks (created on run)
 ```
@@ -64,7 +66,7 @@ The workflow forwards that secret as an environment variable, and CI guard step 
 ## 5-stage readiness pipeline
 Run:
 ```bash
-./scripts/pipeline.sh
+./scripts/smoke.sh
 ```
 
 What it does:
